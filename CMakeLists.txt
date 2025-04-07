@@ -49,6 +49,8 @@ else()
             BackgroundWidget.h
             BackgroundWidget.cpp
             scaffold_forge_resources.qrc
+            ProjectConfigurator.h ProjectConfigurator.cpp
+            ProjectConfigurator.ui
         )
     endif()
 

@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "ProjectConfigurator.h"
 #include "./ui_mainwindow.h"
 
 #include <QMessageBox>
@@ -65,15 +66,25 @@ void MainWindow::showAboutDialog()
 
 void MainWindow::beginApp()
 {
-    // Placeholder logic – replace with whatever you want to do
-    qDebug() << "BEGIN clicked! Launching next phase...";
+    ProjectConfigurator configurator(this);
+    int result = configurator.exec();  // This blocks until the user closes the dialog.
 
-    // Example: unlock window resizing
-    setMinimumSize(800, 600);
-    setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-    resize(1024, 768);
+    // Check whether the user pressed OK (Accepted) or Cancel (Rejected)
+    if (result == QDialog::Accepted) {
+        // Retrieve the project name and dependencies from the configurator.
+        QString projectName = configurator.getProjectName();
+        QList<QString> dependencies = configurator.getSelectedDependencies();
 
-    // TODO: Show new screen / change central widget
+        qDebug() << "User pressed OK.";
+        qDebug() << "Project Name:" << projectName;
+        qDebug() << "Dependencies:" << dependencies;
+
+        // Continue with your logic to switch views or configure the project.
+        // For example, update the main window UI to reflect the project settings.
+    } else {
+        qDebug() << "User canceled project configuration.";
+        // Optionally, handle the cancel action, such as remaining in the current state.
+    }
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event)
