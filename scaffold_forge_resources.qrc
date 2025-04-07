@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/imgs">
+        <file>images/scaffold_forge_title.png</file>
+        <file>images/scaffold_forge_icon.png</file>
+    </qresource>
+</RCC>
