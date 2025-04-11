@@ -4,8 +4,6 @@
 #include <QMainWindow>
 #include <QGraphicsDropShadowEffect>
 
-#include "BackgroundWidget.h"
-
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -36,17 +34,9 @@ public:
      */
     ~MainWindow();
 
-protected:
-    /**
-     * @brief Event filter to detect hover events on interactive elements.
-     *
-     * This is used to apply or remove glow effects dynamically based on hover state.
-     *
-     * @param watched The object being watched for events.
-     * @param event The event received.
-     * @return true if the event was handled; otherwise false.
-     */
-    bool eventFilter(QObject* watched, QEvent* event) override;
+signals:
+    // To forward the configuration data to another component.
+    void projectConfigurationReady(const QString &projectName, const QList<QString> &dependencies);
 
 private slots:
     /**
@@ -55,22 +45,15 @@ private slots:
     void showAboutDialog();
 
     /**
-     * @brief Slot triggered when the user clicks the "BEGIN" label.
-     *
-     * This slot is responsible for transitioning the application from the
-     * landing screen to the main interface. It typically unlocks the window size
-     * and may switch views, change the central widget, or perform initial setup.
+     * @brief Slot to handle when a project is configured in the LandingPage.
+     * @param projectName The name of the project.
+     * @param dependencies List of selected dependencies.
      */
-    void beginApp();
-
+    void onProjectConfigured(const QString &projectName, const QList<QString> &dependencies);
 
 private:
     Ui::MainWindow *ui; ///< Pointer to the UI layout generated from Qt Designer.
 
-    /**
-     * @brief Glow effect used to highlight interactive text (e.g., "BEGIN") on hover.
-     */
-    QGraphicsDropShadowEffect* hoverGlowEffect = nullptr;
 };
 
 #endif // MAINWINDOW_H

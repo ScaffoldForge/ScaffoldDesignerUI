@@ -3,12 +3,15 @@
 
 #include <QAbstractItemView>
 #include <QPushButton>
+#include <QDebug>
 
 ProjectConfigurator::ProjectConfigurator(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::Dialog)
 {
     ui->setupUi(this);
+
+    qDebug() << parent->accessibleName();
 
     // Populate the list widget with available libraries
     ui->dependenciesListWidget->addItem("Boost");
@@ -65,6 +68,7 @@ ProjectConfigurator::ProjectConfigurator(QWidget *parent) :
 
 ProjectConfigurator::~ProjectConfigurator()
 {
+    qDebug() << "Proj Config close";
     delete ui;
 }
 

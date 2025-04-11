@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ProjectConfigurator.h"
 #include "./ui_mainwindow.h"
+#include "LandingPage.h"
+#include "ScaffoldDesigner.h"
 
 #include <QMessageBox>
 #include <QGraphicsDropShadowEffect>
@@ -24,18 +26,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->menuHelp->addAction(aboutAction);
     connect(aboutAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
 
-    // Create the glow effect, but don't apply it yet
-    hoverGlowEffect = new QGraphicsDropShadowEffect(this);
-    hoverGlowEffect->setBlurRadius(15);
-    hoverGlowEffect->setOffset(0, 0);
-    hoverGlowEffect->setColor(QColor(255, 255, 255, 180));
-
-    // Install the event filter to handle hover
-    ui->beginButton->installEventFilter(this);
-
-    // Connect begin to action
-    connect(ui->beginButton, &QPushButton::clicked, this, &MainWindow::beginApp);
-
     // Set background colour to match image
     this->setStyleSheet("background-color: #0a0a0a;");
 
@@ -44,10 +34,31 @@ MainWindow::MainWindow(QWidget *parent)
     appFont.setBold(true);
     QApplication::setFont(appFont);
 
+    // Connect LandingPage signal to MainWindow slot:
+    LandingPage *landingPage = qobject_cast<LandingPage*>(findChild<QWidget*>("landingPage"));
+    if (landingPage) {
+        connect(landingPage, &LandingPage::projectConfigured,
+                this, &MainWindow::onProjectConfigured);
+    }
+
+    // Retrieve the pointer to your Forge view
+    ScaffoldDesigner *forgeView = qobject_cast<ScaffoldDesigner*>(findChild<QWidget*>("forgeView"));
+    if (forgeView) {
+        connect(this, &MainWindow::projectConfigurationReady,
+                forgeView, &ScaffoldDesigner::initializeWithProject);
+    }
+    else {
+        qDebug() << "Forge view not found in stacked widget!";
+    }
+
+    // Set view to landing page on construction
+    ui->stackedWidget->setCurrentWidget(landingPage);
+
 }
 
 MainWindow::~MainWindow()
 {
+    qDebug() << "Main Close";
     delete ui;
 }
 
@@ -64,39 +75,15 @@ void MainWindow::showAboutDialog()
     QMessageBox::about(this, "About Scaffold Forge", message);
 }
 
-void MainWindow::beginApp()
+void MainWindow::onProjectConfigured(const QString &projectName, const QList<QString> &dependencies)
 {
-    ProjectConfigurator configurator(this);
-    int result = configurator.exec();  // This blocks until the user closes the dialog.
+    qDebug() << "Received configuration:" << projectName << dependencies;
+    // Retrieve the ForgeView widget by its object name.
+    QWidget *forgeView = ui->stackedWidget->findChild<QWidget*>("forgeView");
 
-    // Check whether the user pressed OK (Accepted) or Cancel (Rejected)
-    if (result == QDialog::Accepted) {
-        // Retrieve the project name and dependencies from the configurator.
-        QString projectName = configurator.getProjectName();
-        QList<QString> dependencies = configurator.getSelectedDependencies();
+    // Set new view
+    ui->stackedWidget->setCurrentWidget(forgeView);
 
-        qDebug() << "User pressed OK.";
-        qDebug() << "Project Name:" << projectName;
-        qDebug() << "Dependencies:" << dependencies;
-
-        // Continue with your logic to switch views or configure the project.
-        // For example, update the main window UI to reflect the project settings.
-    } else {
-        qDebug() << "User canceled project configuration.";
-        // Optionally, handle the cancel action, such as remaining in the current state.
-    }
-}
-
-bool MainWindow::eventFilter(QObject* watched, QEvent* event)
-{
-    if (watched == ui->beginButton) {
-        if (event->type() == QEvent::Enter) {
-            // Apply glow on hover
-            ui->beginButton->setGraphicsEffect(hoverGlowEffect);
-        } else if (event->type() == QEvent::Leave) {
-            // Remove glow when not hovered
-            ui->beginButton->setGraphicsEffect(nullptr);
-        }
-    }
-    return QMainWindow::eventFilter(watched, event);
+    // Forward the configuration data via the signal
+    emit projectConfigurationReady(projectName, dependencies);
 }

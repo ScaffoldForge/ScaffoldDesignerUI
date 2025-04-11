@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ScaffoldDesigner</class>
+ <widget class="QWidget" name="ScaffoldDesigner">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>884</width>
+    <height>454</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <item>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QFrame" name="treeViewFrame">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="addFileButton">
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+    background-color: transparent;   /* No background for a subtle look */
+    border: none;                    /* Remove the button border */
+    padding: 4px;                    /* Some padding so it’s not too cramped */
+}
+
+/* Slight hover highlight */
+QPushButton:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="addFolderButton">
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+    background-color: transparent;   /* No background for a subtle look */
+    border: none;                    /* Remove the button border */
+    padding: 4px;                    /* Some padding so it’s not too cramped */
+}
+
+/* Slight hover highlight */
+QPushButton:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="TreeViewWidget" name="directoryTreeView">
+         <property name="styleSheet">
+          <string notr="true">QTreeView {
+    background-color: #1E1E1E;    /* Dark gray background */
+    color: #D4D4D4;               /* Light gray text */
+    border: none;                 /* Remove default border */
+    selection-background-color: #264F78;  /* Blue highlight */
+    selection-color: #FFFFFF;     /* White text on selection */
+    show-decoration-selected: 1;  /* Highlight entire row */
+}
+
+QTreeView::branch {
+    background: transparent;
+    width: 0px; /* Hide branch indicator lines if you want */
+}
+</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QFrame" name="itemEditorFrame">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>FILE EDITOR</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TreeViewWidget</class>
+   <extends>QTreeView</extends>
+   <header location="global">TreeViewWidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
