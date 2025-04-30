@@ -1,4 +1,8 @@
+// TreeViewWidget.cpp
+
 #include "TreeViewWidget.h"
+#include "ProjectConfigurator.h"
+
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QFont>
@@ -12,172 +16,199 @@ TreeViewWidget::TreeViewWidget(QWidget *parent)
     model(new QStandardItemModel(this)),
     rootItem(nullptr)
 {
-    // Set up the model with a header label.
+    // Set up column headers
     model->setHorizontalHeaderLabels(QStringList() << "Name");
     setModel(model);
 
-    // Enable inline editing on double-click or via the edit key.
+    // Show expand/collapse arrows
+    setItemsExpandable(true);
+    setRootIsDecorated(true);
+
+    // Enable inline editing
     setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
 
-    // Connect the model's itemChanged signal to our validation slot.
+    // Connect changes in item names to validation logic
     connect(model, &QStandardItemModel::itemChanged,
             this, &TreeViewWidget::onItemChanged);
 }
 
-// Sets or updates the root folder name.
+// Sets the root folder name (or updates existing root label)
 void TreeViewWidget::setRootFolderName(const QString &name)
 {
     if (!rootItem) {
         rootItem = new QStandardItem(name);
-        // Disable editing on the root item.
         rootItem->setFlags(rootItem->flags() & ~Qt::ItemIsEditable);
+        rootItem->setData(true, IsFolderRole);  // Mark root as a folder
         model->appendRow(rootItem);
     } else {
         rootItem->setText(name);
     }
 }
 
-// Adds a new folder or file under the given parent.
+// Adds a new folder or file under a given parent item
 void TreeViewWidget::addNewItem(QStandardItem *parentItem, bool isFolder)
 {
     if (!parentItem) {
-        qFatal("TreeViewWidget::addNewItem() called with a null parentItem");
+        qFatal("TreeViewWidget::addNewItem() called with null parentItem");
     }
 
-    QString defaultName;
-    if (isFolder) {
-        // Determine a unique default name for folders, e.g., NewFolder, NewFolder_2, etc.
-        QString baseName = "NewFolder";
-        defaultName = baseName;
-        int suffix = 2;
-        bool duplicateFound;
-        do {
-            duplicateFound = false;
-            const int rowCount = parentItem->rowCount();
-            for (int i = 0; i < rowCount; ++i) {
-                QStandardItem *sibling = parentItem->child(i);
-                if (sibling->text().trimmed().compare(defaultName, Qt::CaseInsensitive) == 0) {
-                    duplicateFound = true;
-                    break;
-                }
+    // Generate unique name
+    QString baseName = isFolder ? "NewFolder" : "NewFile";
+    QString defaultName = baseName;
+    int suffix = 2;
+
+    while (true) {
+        bool duplicateFound = false;
+
+        for (int i = 0; i < parentItem->rowCount(); ++i) {
+            const auto *sibling = parentItem->child(i);
+            if (sibling->text().trimmed().compare(defaultName, Qt::CaseInsensitive) == 0) {
+                duplicateFound = true;
+                break;
             }
-            if (duplicateFound) {
-                defaultName = baseName + "_" + QString::number(suffix++);
-            }
-        } while (duplicateFound);
-    } else {
-        defaultName = "NewFile";
+        }
+
+        if (!duplicateFound) break;
+        defaultName = baseName + "_" + QString::number(suffix++);
     }
 
-    // Create the new item with the determined default name.
-    QStandardItem *newItem = new QStandardItem(defaultName);
-    // Mark it as new so that its name will be validated after editing.
+    // Create the item and mark metadata
+    auto *newItem = new QStandardItem(defaultName);
+    newItem->setData(isFolder, IsFolderRole);
     newItem->setData(true, NewItemRole);
+    newItem->setData(defaultName, PreviousNameRole);
 
+    // Bold font for folders
     if (isFolder) {
-        // For folders, use a bold font.
         QFont font = newItem->font();
         font.setBold(true);
         newItem->setFont(font);
-    } else {
-        // Optionally set a file icon or similar handling for files.
     }
 
-    // Append the new item to the parent item.
     parentItem->appendRow(newItem);
     expand(model->indexFromItem(parentItem));
-
-    // Begin inline editing so the user can change the default name.
-    QModelIndex newIndex = model->indexFromItem(newItem);
-    edit(newIndex, QAbstractItemView::DoubleClicked);
+    edit(model->indexFromItem(newItem), QAbstractItemView::DoubleClicked);
 }
 
-// Overridden edit() method to store the previous text before editing starts.
-// Note: Do not include the default argument for event in the definition.
+// Begins inline editing and stores previous value for validation fallback
 bool TreeViewWidget::edit(const QModelIndex &index,
                           QAbstractItemView::EditTrigger trigger,
                           QEvent *event)
 {
-    QStandardItem *item = model->itemFromIndex(index);
-    if (item) {
-        // Save the current (valid) text to revert to if needed.
+    if (auto *item = model->itemFromIndex(index)) {
         item->setData(item->text(), PreviousNameRole);
     }
     return QTreeView::edit(index, trigger, event);
 }
 
-// Overridden context menu event to provide a right-click menu.
-void TreeViewWidget::contextMenuEvent(QContextMenuEvent *event)
+// Adds a new library item under root using the ProjectConfigurator dialog
+void TreeViewWidget::addLibrary(QStandardItem *parentItem)
 {
-    // Get the item under the mouse, or default to the root.
-    QModelIndex index = indexAt(event->pos());
-    QStandardItem *selectedItem = (index.isValid()) ? model->itemFromIndex(index) : rootItem;
+    ProjectConfigurator dlg(this, true);  // Library mode
 
-    // Create the context menu.
-    QMenu contextMenu(this);
-    QAction *addFolderAction = contextMenu.addAction("Add Folder");
-    QAction *addFileAction   = contextMenu.addAction("Add File");
-    QAction *removeAction    = contextMenu.addAction("Remove");
-
-    // Disable the remove action if the selected item is the top-level (root) item.
-    if (!selectedItem || !selectedItem->parent())
-        removeAction->setEnabled(false);
-
-    // Execute the menu.
-    QAction *selectedAction = contextMenu.exec(event->globalPos());
-    if (!selectedAction)
+    if (dlg.exec() != QDialog::Accepted)
         return;
 
-    if (selectedAction == addFolderAction) {
-        addNewItem(selectedItem, true);
-    } else if (selectedAction == addFileAction) {
-        addNewItem(selectedItem, false);
-    } else if (selectedAction == removeAction) {
-        // If the item has children, confirm deletion.
-        if (selectedItem->rowCount() > 0) {
-            int ret = QMessageBox::warning(this,
-                                           tr("Confirm Delete"),
-                                           tr("Are you sure you want to delete the folder and its subdirectories?"),
-                                           QMessageBox::Yes | QMessageBox::No,
-                                           QMessageBox::No);
-            if(ret != QMessageBox::Yes)
-                return;
+    QString libName = dlg.getProjectName().trimmed();
+    if (libName.isEmpty())
+        return;
+
+    // Check for name conflicts at root level
+    for (int i = 0; i < parentItem->rowCount(); ++i) {
+        if (parentItem->child(i)->text().trimmed().compare(libName, Qt::CaseInsensitive) == 0) {
+            QMessageBox::warning(this, "Duplicate", "A library with that name already exists.");
+            return;
         }
-        // Remove the selected item.
-        QStandardItem *parentItem = selectedItem->parent();
-        if (parentItem) {
-            parentItem->removeRow(selectedItem->row());
+    }
+
+    // Create library item
+    auto *libItem = new QStandardItem(libName);
+    libItem->setData(true, IsFolderRole);  // Libraries behave like folders
+    libItem->setData(true, NewItemRole);
+    libItem->setData(libName, PreviousNameRole);
+    libItem->setData(QStringList(dlg.getSelectedDependencies()), DependenciesRole);
+
+    // Make it bold for visibility
+    QFont font = libItem->font();
+    font.setBold(true);
+    libItem->setFont(font);
+
+    parentItem->appendRow(libItem);
+    expand(model->indexFromItem(parentItem));
+}
+
+// Context menu handler for right-click actions
+void TreeViewWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+    const QModelIndex index = indexAt(event->pos());
+    QStandardItem *selectedItem = index.isValid() ? model->itemFromIndex(index) : rootItem;
+    const bool canAdd = selectedItem->data(IsFolderRole).toBool();
+
+    QMenu contextMenu(this);
+    contextMenu.setStyleSheet(R"(
+        QMenu::item {
+            padding: 6px 16px;
+            background-color: #2d2d2d;
+            color: white;
+        }
+        QMenu::item:disabled {
+            color: #777777;
+            background-color: #2d2d2d;
+        }
+        QMenu::item:selected {
+            background-color: #444444;
+        }
+    )");
+
+    QAction *addFolderAction   = contextMenu.addAction("Add Folder");
+    QAction *addFileAction     = contextMenu.addAction("Add File");
+    QAction *addLibraryAction  = contextMenu.addAction("Add Library");
+    QAction *removeAction      = contextMenu.addAction("Remove");
+
+    addLibraryAction->setEnabled(selectedItem == rootItem);
+    addFolderAction->setEnabled(canAdd);
+    addFileAction->setEnabled(canAdd);
+    removeAction->setEnabled(selectedItem && selectedItem->parent());
+
+    if (QAction *selectedAction = contextMenu.exec(event->globalPos())) {
+        if (selectedAction == addFolderAction) {
+            addNewItem(selectedItem, true);
+        } else if (selectedAction == addFileAction) {
+            addNewItem(selectedItem, false);
+        } else if (selectedAction == addLibraryAction) {
+            addLibrary(selectedItem);
+        } else if (selectedAction == removeAction) {
+            if (selectedItem->rowCount() > 0) {
+                int ret = QMessageBox::warning(this,
+                                               tr("Confirm Delete"),
+                                               tr("Are you sure you want to delete the folder and its subdirectories?"),
+                                               QMessageBox::Yes | QMessageBox::No,
+                                               QMessageBox::No);
+                if (ret != QMessageBox::Yes)
+                    return;
+            }
+
+            if (QStandardItem *parent = selectedItem->parent()) {
+                parent->removeRow(selectedItem->row());
+            }
         }
     }
 }
 
-// Slot to validate an item when its text changes.
+// Validates new item name on change and enforces uniqueness
 void TreeViewWidget::onItemChanged(QStandardItem *item)
 {
-    // Retrieve stored previous name.
-    QVariant previousVariant = item->data(PreviousNameRole);
-    if (!previousVariant.isValid()) {
-        // If no previous value is stored, skip validation.
+    const QVariant previousVariant = item->data(PreviousNameRole);
+    if (!previousVariant.isValid())
         return;
-    }
 
-    QString oldName = previousVariant.toString();
-    QString newName = item->text().trimmed();
+    const QString oldName = previousVariant.toString();
+    const QString newName = item->text().trimmed();
 
-    // Use the item's parent or root if no parent.
-    QStandardItem *parentItem = item->parent();
-    if (!parentItem)
-        parentItem = rootItem;
+    QStandardItem *parentItem = item->parent() ? item->parent() : rootItem;
 
-    bool valid = true;
-    // Check that the new name is not empty.
-    if (newName.isEmpty()) {
-        valid = false;
-    }
-
-    // Check for duplicates among siblings.
-    const int rowCount = parentItem->rowCount();
-    for (int i = 0; i < rowCount; ++i) {
+    bool valid = !newName.isEmpty();
+    for (int i = 0; i < parentItem->rowCount(); ++i) {
         QStandardItem *sibling = parentItem->child(i);
         if (sibling == item)
             continue;
@@ -187,12 +218,22 @@ void TreeViewWidget::onItemChanged(QStandardItem *item)
         }
     }
 
-    // If the new name is invalid, revert to old name.
     if (!valid) {
         qDebug() << "Invalid name detected (" << newName << "); reverting to:" << oldName;
         item->setText(oldName);
     } else {
-        // Valid name: update the stored previous name.
         item->setData(newName, PreviousNameRole);
     }
+}
+
+// Returns the root node of the tree
+QStandardItem* TreeViewWidget::getRootItem() const
+{
+    return rootItem;
+}
+
+// Returns the internal model (used for Designer access or external control)
+QStandardItemModel* TreeViewWidget::getModel() const
+{
+    return model;
 }

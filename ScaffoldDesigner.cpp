@@ -1,3 +1,5 @@
+// ScaffoldDesigner.cpp
+
 #include "ScaffoldDesigner.h"
 #include "ui_ScaffoldDesigner.h"
 #include "TreeViewWidget.h"
@@ -7,52 +9,92 @@
 #include <QMenu>
 #include <QAction>
 
+// Constructor
 ScaffoldDesigner::ScaffoldDesigner(QWidget *parent)
     : QWidget(parent),
     ui(new Ui::ScaffoldDesigner)
 {
     ui->setupUi(this);
 
-    // Add style to insertion buttons
+    // Assign icons to the Add buttons
     ui->addFileButton->setIcon(QIcon(":/imgs/images/addFileButton.png"));
     ui->addFolderButton->setIcon(QIcon(":/imgs/images/addFolderButton.png"));
 
-    // Set tree styles
+    // TreeView visual settings
     ui->directoryTreeView->setHeaderHidden(true);
     ui->directoryTreeView->setIndentation(20);
 
-    // Connect buttons
-    connect(ui->addFileButton, &QPushButton::clicked, this, &ScaffoldDesigner::onAddFileClicked);
-    connect(ui->addFolderButton, &QPushButton::clicked, this, &ScaffoldDesigner::onAddFolderClicked);
+    // Button signal-slot connections
+    connect(ui->addFileButton, &QPushButton::clicked,
+            this, &ScaffoldDesigner::onAddFileClicked);
+    connect(ui->addFolderButton, &QPushButton::clicked,
+            this, &ScaffoldDesigner::onAddFolderClicked);
 }
 
+// Destructor
 ScaffoldDesigner::~ScaffoldDesigner()
 {
     delete ui;
 }
 
-void ScaffoldDesigner::initializeWithProject(const QString &projectName, const QList<QString> &dependencies)
+// Initializes the tree with a top-level project node and optional dependencies
+void ScaffoldDesigner::initializeWithProject(const QString &projectName,
+                                             const QList<QString> &dependencies)
 {
-    // Log the initialization
     qDebug() << "ScaffoldDesigner initialized with project:" << projectName;
 
-    // Load parent with project top level
-    TreeViewWidget *tree = qobject_cast<TreeViewWidget*>(ui->directoryTreeView);
+    // Ensure the tree view is cast to the correct subclass
+    auto *tree = qobject_cast<TreeViewWidget*>(ui->directoryTreeView);
     if (tree) {
         tree->setRootFolderName(projectName);
+        // Dependencies could be handled here in the future if needed
     } else {
-        qFatal("Failed to cast ui->treeView to TreeViewWidget*");
+        qFatal("Failed to cast ui->directoryTreeView to TreeViewWidget*");
     }
 }
 
-
+// Slot for Add File button
 void ScaffoldDesigner::onAddFileClicked()
 {
-    qDebug() << "ADD FILE";
+    auto *tree = qobject_cast<TreeViewWidget*>(ui->directoryTreeView);
+    if (!tree) return;
+
+    const QModelIndex index = tree->currentIndex();
+    QStandardItem *selectedItem = tree->getModel()->itemFromIndex(index);
+
+    // Default to root if no selection
+    if (!selectedItem) {
+        selectedItem = tree->getRootItem();
+    }
+
+    // Prevent adding a file under another file
+    if (!selectedItem->data(IsFolderRole).toBool()) {
+        qDebug() << "Selected item is a file — cannot add to it.";
+        return;
+    }
+
+    tree->addNewItem(selectedItem, false); // Add file
 }
 
+// Slot for Add Folder button
 void ScaffoldDesigner::onAddFolderClicked()
 {
-    qDebug() << "ADD FOLDER";
-}
+    auto *tree = qobject_cast<TreeViewWidget*>(ui->directoryTreeView);
+    if (!tree) return;
 
+    const QModelIndex index = tree->currentIndex();
+    QStandardItem *selectedItem = tree->getModel()->itemFromIndex(index);
+
+    // Default to root if no selection
+    if (!selectedItem) {
+        selectedItem = tree->getRootItem();
+    }
+
+    // Prevent adding a folder under a file
+    if (!selectedItem->data(IsFolderRole).toBool()) {
+        qDebug() << "Selected item is a file — cannot add to it.";
+        return;
+    }
+
+    tree->addNewItem(selectedItem, true); // Add folder
+}

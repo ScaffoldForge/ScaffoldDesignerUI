@@ -24,7 +24,7 @@ public:
      * @brief Constructs a ProjectConfigurator dialog.
      * @param parent The parent widget (default is nullptr).
      */
-    explicit ProjectConfigurator(QWidget *parent = nullptr);
+    explicit ProjectConfigurator(QWidget *parent = nullptr, bool isLibrary = false);
 
     /**
      * @brief Destructor for the ProjectConfigurator dialog.

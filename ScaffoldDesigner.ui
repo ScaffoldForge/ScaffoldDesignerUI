@@ -94,13 +94,7 @@ QPushButton:hover {
     selection-background-color: #264F78;  /* Blue highlight */
     selection-color: #FFFFFF;     /* White text on selection */
     show-decoration-selected: 1;  /* Highlight entire row */
-}
-
-QTreeView::branch {
-    background: transparent;
-    width: 0px; /* Hide branch indicator lines if you want */
-}
-</string>
+}</string>
          </property>
         </widget>
        </item>
