@@ -22,6 +22,8 @@ set(PROJECT_SOURCES
         scaffold_forge_resources.qrc
         BackgroundWidget.cpp
         BackgroundWidget.h
+        TreeViewWidget.cpp
+        TreeViewWidget.h
         ${TS_FILES}
 )
 
@@ -51,6 +53,12 @@ else()
             scaffold_forge_resources.qrc
             ProjectConfigurator.h ProjectConfigurator.cpp
             ProjectConfigurator.ui
+            LandingPage.ui
+            LandingPage.h LandingPage.cpp
+            ScaffoldDesigner.h ScaffoldDesigner.cpp ScaffoldDesigner.ui
+            FileTypes.h
+            TreeViewWidget.h TreeViewWidget.cpp
+
         )
     endif()
 

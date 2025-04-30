@@ -2,5 +2,7 @@
     <qresource prefix="/imgs">
         <file>images/scaffold_forge_title.png</file>
         <file>images/scaffold_forge_icon.png</file>
+        <file>images/addFileButton.png</file>
+        <file>images/addFolderButton.png</file>
     </qresource>
 </RCC>

@@ -3,12 +3,24 @@
 
 #include <QAbstractItemView>
 #include <QPushButton>
+#include <QDebug>
 
-ProjectConfigurator::ProjectConfigurator(QWidget *parent) :
+ProjectConfigurator::ProjectConfigurator(QWidget *parent, bool isLibrary) :
     QDialog(parent),
     ui(new Ui::Dialog)
 {
     ui->setupUi(this);
+
+    qDebug() << parent->accessibleName();
+
+    // Set window and label titles based on mode
+    if (isLibrary) {
+        setWindowTitle("Library Configurator");
+        ui->porjectNameTitle->setText("Library Name:");
+    } else {
+        setWindowTitle("Project Configurator");
+        ui->porjectNameTitle->setText("Project Name:");
+    }
 
     // Populate the list widget with available libraries
     ui->dependenciesListWidget->addItem("Boost");
@@ -65,6 +77,7 @@ ProjectConfigurator::ProjectConfigurator(QWidget *parent) :
 
 ProjectConfigurator::~ProjectConfigurator()
 {
+    qDebug() << "Proj Config close";
     delete ui;
 }
 
